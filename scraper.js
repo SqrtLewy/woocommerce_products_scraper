@@ -1,97 +1,62 @@
 const fs = require('fs');
 const Json2csv = require('json2csv').Parser;
 const puppeteer = require('puppeteer');
- 
-var titleLinkArray = [];
-global.titleLinkArray = [];
 
-(async () => {
-    try {
-        // open browser
-        var browser = await puppeteer.launch({headless: true});
-        // open a new page
-        var page = await browser.newPage();
-        // enter url
-		await page.setDefaultNavigationTimeout(0); 
-        await page.goto(`url/?product_count=122`);
-        // a selector that needs to load
-        await page.waitForSelector("#content");
-        var urls = await page.evaluate(() => {
-            // select a selector with links
-            var titleNodeList = document.querySelectorAll('li.product-grid-view > div > div > div > h3 > a');
-            
-            for (var i = 0; i < titleNodeList.length; i++) {
-                titleLinkArray[i] = {
-                    // link selection
-                    url: titleNodeList[i].getAttribute("href"),
-                };
-            }
-        });
-        await browser.close();
-        // Writing links inside a json file
-                const j2csv = new Json2csv;
-                const csv = j2csv.parse(urls);
-                fs.writeFileSync('./links.csv',csv,'utf-8', function (err) {
-            if (err) throw err;
-            console.log("File saved!");
-        });
-        console.log("Browser Closed");
-    } catch (err) {
-        // Catch and display errors
-        console.log((err));
-        await browser.close();
-        console.log(error("Browser Closed"));
-    }
-})();
- 
-if(titleLinkArray){
-	titleLinkArray.forEach((item) => {
-    (async () => {
-    try {
-        // open browser
-        var browser = await puppeteer.launch({headless: true});
-        // open a new page
-        var page = await browser.newPage();
-        // enter url
-        await page.goto(item);
-        // a selector that needs to load
-        await page.waitForSelector("#content");
- 
-        var products = await page.evaluate(() => {
-            // select a selector with links to photos
-            var getimages = document.querySelectorAll('div.attachment-shop_thumbnail > a > img[src*="/wp-content"]');
-            // select only links
-            var images = [].map.call(getimages, img => img.src);
-            var title = document.querySelector('h1.product_title').textContent;
-            var description = document.querySelector('.post-content').textContent;
-            var price = document.querySelector('p.price > span:nth-child(1)').textContent;
-            var categories = document.querySelector('.posted_in').textContent;
-            var productsArray = [];
-            for (var i = 0; i < 160; i++) {
-                productsArray[i] = {
-                    images: images,
-                    title: title,
-                    descrption: description,
-                    price: price,
-                    categories: categories
-                };
-            }
-            return productsArray;
-        });
-        await browser.close();
-        // Writing links inside a json file
-                const j2csv = new Json2csv;
-                const csv = j2csv.parse(products);
-                fs.writeFileSync('./products.csv',csv,'utf-8', function (err) {
-            if (err) throw err;
-            console.log("File saved!");
-        });
-        console.log("Browser Closed");
-    } catch (err) {
-        // Catch and display errors
-        console.log((err));
-        await browser.close();
-        console.log(error("Browser Closed"));
-    }
-    })();
-})}
+async function scrape(){
+
+const browser = await puppeteer.launch({ headless: false });
+const page = await browser.newPage();
+
+await page.goto('https://www.altersocks.com/products/?product_count=121');
+
+// Gather assets page urls for all the blockchains
+const assetUrls = await page.$$eval(
+  'li.product-grid-view > div > div > div > h3 > a',
+  assetLinks => assetLinks.map(link => link.href)
+);
+
+const results = [];
+
+// Visit each assets page one by one
+for (let assetsUrl of assetUrls) {
+  await page.goto(assetsUrl);
+  
+    const imgs = await page.$$eval('div.attachment-shop_thumbnail > a > img[src*="/wp-content"]', imgs => imgs.map(img => img.getAttribute('src')));
+
+	const [el2] = await page.$x('/html/body/div[1]/div[2]/main/div/div[1]/section/div[2]/div[2]/div/h1');
+	const txt = await el2.getProperty('textContent');
+	const title = await txt.jsonValue();
+	
+	const [el3] = await page.$x('/html/body/div[1]/div[2]/main/div/div[1]/section/div[2]/div[2]/div/div[3]');
+	const txt2 = await el3.getProperty('textContent');
+	const description = await txt2.jsonValue();
+
+	const [el4] = await page.$x('/html/body/div[1]/div[2]/main/div/div[1]/section/div[2]/div[2]/div/p/span');
+	const txt3 = await el4.getProperty('textContent');
+	const price = await txt3.jsonValue();
+
+	const [el5] = await page.$x('/html/body/div[1]/div[2]/main/div/div[1]/section/div[2]/div[2]/div/div[4]/span')
+	const txt4 = await el5.getProperty('textContent');
+	const categories = await txt4.jsonValue();
+
+    results.push([{
+		imgs,
+		title,
+		description,
+		price,
+		categories
+    }]);
+  }
+
+	// Writing products data inside a csv file
+	const j2csv = new Json2csv;
+	const csv = j2csv.parse(results);
+	fs.writeFileSync('./products.csv',csv,'utf-8', function (err) {
+	if (err) throw err;
+		console.log("File saved!");
+	})
+
+browser.close();
+}
+
+scrape()

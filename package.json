@@ -1,0 +1,25 @@
+{
+  "name": "scraper",
+  "version": "1.0.0",
+  "description": "scraper [NodeJS&Puppeteer]",
+  "main": "scraper.js",
+  "dependencies": {
+    "csv-parser": "^2.3.3",
+    "json2csv": "^5.0.1",
+    "puppeteer": "^5.2.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SqrtLewy/woocommerce_products_scraper.git"
+  },
+  "author": "SqrtLewy",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/SqrtLewy/woocommerce_products_scraper/issues"
+  },
+  "homepage": "https://github.com/SqrtLewy/woocommerce_products_scraper#readme"
+}
